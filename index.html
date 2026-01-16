@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الكوتش | مدربك الشخصي</title>
+    
+    <!-- Fonts: Cairo (Modern Arabic) + Chakra Petch (Futuristic Numbers) -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800;900&family=Chakra+Petch:wght@500;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Cairo', 'sans-serif'],
+                        mono: ['Chakra Petch', 'sans-serif'],
+                    },
+                    colors: {
+                        neon: {
+                            DEFAULT: '#39FF14', // Neon Green
+                            dim: 'rgba(57, 255, 20, 0.1)',
+                            glow: 'rgba(57, 255, 20, 0.5)',
+                        },
+                        dark: {
+                            bg: '#0a0a0a',
+                            panel: '#111111',
+                            border: '#222222',
+                        }
+                    },
+                    boxShadow: {
+                        'neon': '0 0 10px rgba(57, 255, 20, 0.3), 0 0 20px rgba(57, 255, 20, 0.1)',
+                    },
+                    animation: {
+                        'pulse-fast': 'pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'slide-up': 'slideUp 0.5s ease-out forwards',
+                    },
+                    keyframes: {
+                        slideUp: {
+                            '0%': { transform: 'translateY(20px)', opacity: 0 },
+                            '100%': { transform: 'translateY(0)', opacity: 1 },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <script type="importmap">
+        {
+            "imports": {
+                "react": "https://esm.sh/react@18.2.0",
+                "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+                "lucide-react": "https://esm.sh/lucide-react@0.263.1"
+            }
+        }
+    </script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        body {
+            background-color: #050505;
+            color: #e5e5e5;
+            background-image: 
+                linear-gradient(rgba(20, 255, 20, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(20, 255, 20, 0.03) 1px, transparent 1px);
+            background-size: 30px 30px;
+        }
+
+        /* Glitch Effect Text */
+        .glitch-text {
+            position: relative;
+        }
+        
+        .custom-range::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #39FF14;
+            cursor: pointer;
+            box-shadow: 0 0 10px #39FF14;
+            margin-top: -8px;
+        }
+        .custom-range::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #333;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel" data-type="module">
+        import React, { useState, useEffect } from 'react';
+        import { createRoot } from 'react-dom/client';
+        import { 
+            Dumbbell, Flame, Utensils, Activity, Settings, Key, 
+            Zap, TrendingUp, Trophy, ChevronRight, CheckCircle2,
+            Scale, X
+        } from 'lucide-react';
+
+        // --- Mock Data (Demo) ---
+        const MOCK_PLAN = {
+            summary: "خطة تضخيم عضلات (يوم دفع)",
+            calories: 2800,
+            protein: "180g",
+            workout: [
+                { name: "ضغط صدر مستوي (Bench Press)", reps: "4 مجموعات × 10 عدات" },
+                { name: "ضغط أكتاف بالدمبل", reps: "3 مجموعات × 12 عدة" },
+                { name: "تراي سيبس (Triceps Pushdown)", reps: "3 مجموعات × 15 عدة" },
+                { name: "رفرفة جانبي", reps: "3 مجموعات × 15 عدة" }
+            ],
+            diet: {
+                breakfast: "5 بياض بيض + شوفان بالحليب والموز",
+                lunch: "200 جرام صدور دجاج + أرز بني + سلطة خضراء",
+                snack: "سكوب بروتين + تفاحة",
+                dinner: "علبة تونة + بطاطس مسلوقة"
+            }
+        };
+
+        function App() {
+            // User Stats
+            const [weight, setWeight] = useState(75);
+            const [goal, setGoal] = useState('muscle'); // muscle | weightloss | maintenance
+            const [place, setPlace] = useState('gym'); // gym | home
+            const [level, setLevel] = useState('intermediate'); // beginner | intermediate | advanced
+
+            // System
+            const [plan, setPlan] = useState(null);
+            const [loading, setLoading] = useState(false);
+            const [showSettings, setShowSettings] = useState(false);
+            const [apiKey, setApiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
+            const [progress, setProgress] = useState(0);
+
+            const saveApiKey = (key) => {
+                setApiKey(key);
+                localStorage.setItem('gemini_api_key', key);
+            };
+
+            const generatePlan = async () => {
+                setLoading(true);
+                setProgress(0);
+                setPlan(null);
+
+                // Fake Progress Bar Animation
+                const interval = setInterval(() => {
+                    setProgress(prev => Math.min(prev + 10, 90));
+                }, 300);
+
+                // Demo Mode Check
+                if (!apiKey) {
+                    setTimeout(() => {
+                        clearInterval(interval);
+                        setProgress(100);
+                        setPlan(MOCK_PLAN);
+                        setLoading(false);
+                    }, 2500);
+                    return;
+                }
+
+                // AI Prompt
+                const goalText = goal === 'muscle' ? 'بناء عضلات' : goal === 'weightloss' ? 'خسارة وزن' : 'لياقة عامة';
+                const placeText = place === 'gym' ? 'في الجيم (أجهزة متوفرة)' : 'في المنزل (بوزن الجسم)';
+                
+                const prompt = `بصفتك مدرب لياقة بدنية محترف، قم بإنشاء خطة ليوم واحد.
+                المستخدم: وزنه ${weight} كجم، مستواه ${level}، يتدرب ${placeText}.
+                الهدف: ${goalText}.
+
+                المخرجات المطلوبة JSON فقط:
+                {
+                    "summary": "ملخص سريع للخطة",
+                    "calories": "السعرات التقديرية (رقم)",
+                    "protein": "البروتين التقديري (مثلا 150g)",
+                    "workout": [{"name": "اسم التمرين", "reps": "العدات والمجموعات"}],
+                    "diet": {
+                        "breakfast": "الفطور",
+                        "lunch": "الغداء",
+                        "snack": "سناك",
+                        "dinner": "العشاء"
+                    }
+                }`;
+
+                try {
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            contents: [{ parts: [{ text: prompt }] }],
+                            generationConfig: { responseMimeType: "application/json" }
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    const result = JSON.parse(data.candidates[0].content.parts[0].text);
+                    
+                    clearInterval(interval);
+                    setProgress(100);
+                    setPlan(result);
+                } catch (error) {
+                    clearInterval(interval);
+                    setPlan(MOCK_PLAN); // Fallback
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            return (
+                <div className="min-h-screen flex flex-col items-center p-4 lg:p-8 font-sans">
+                    
+                    {/* Top Bar */}
+                    <div className="w-full max-w-5xl flex justify-between items-center mb-8 border-b border-dark-border pb-4">
+                        <div className="flex items-center gap-3">
+                            <div className="bg-neon text-black p-2 rounded transform -skew-x-12">
+                                <Activity className="w-6 h-6 transform skew-x-12" />
+                            </div>
+                            <div>
+                                <h1 className="text-2xl font-black tracking-tighter uppercase italic">الكوتش <span className="text-neon">PRO</span></h1>
+                            </div>
+                        </div>
+                        <button onClick={() => setShowSettings(true)} className="text-gray-400 hover:text-neon transition-colors">
+                            <Settings />
+                        </button>
+                    </div>
+
+                    {/* Settings Modal */}
+                    {showSettings && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+                            <div className="bg-dark-panel border border-dark-border p-6 rounded-2xl w-full max-w-md relative">
+                                <button onClick={() => setShowSettings(false)} className="absolute top-4 left-4 text-gray-500 hover:text-white"><X /></button>
+                                <h3 className="text-neon font-bold mb-4 flex items-center gap-2"><Key className="w-5 h-5" /> تفعيل الذكاء الاصطناعي</h3>
+                                <input 
+                                    type="password" 
+                                    value={apiKey}
+                                    onChange={(e) => saveApiKey(e.target.value)}
+                                    placeholder="أدخل مفتاح API..."
+                                    className="w-full bg-black border border-gray-700 rounded-lg p-3 text-white focus:border-neon outline-none"
+                                />
+                                <div className="mt-4 flex justify-end">
+                                    <button onClick={() => setShowSettings(false)} className="bg-neon text-black font-bold px-6 py-2 rounded hover:bg-green-400">حفظ</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="grid lg:grid-cols-12 gap-8 w-full max-w-6xl">
+                        
+                        {/* INPUT PANEL */}
+                        <div className="lg:col-span-4 space-y-6">
+                            <div className="bg-dark-panel border border-dark-border p-6 rounded-2xl relative overflow-hidden group">
+                                <div className="absolute top-0 right-0 w-20 h-20 bg-neon/5 rounded-full blur-2xl group-hover:bg-neon/10 transition-all"></div>
+                                
+                                <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+                                    <Trophy className="text-neon w-5 h-5" /> بيانات اللاعب
+                                </h2>
+
+                                {/* Weight Slider */}
+                                <div className="mb-6">
+                                    <div className="flex justify-between mb-2">
+                                        <label className="text-gray-400 text-sm font-bold">الوزن الحالي</label>
+                                        <span className="text-neon font-mono text-xl font-bold">{weight} <span className="text-xs text-gray-500">KG</span></span>
+                                    </div>
+                                    <input 
+                                        type="range" 
+                                        min="40" max="150" 
+                                        value={weight} 
+                                        onChange={(e) => setWeight(e.target.value)}
+                                        className="w-full custom-range appearance-none h-1 bg-gray-700 rounded outline-none"
+                                    />
+                                </div>
+
+                                {/* Goal Selection */}
+                                <div className="mb-6">
+                                    <label className="text-gray-400 text-sm font-bold block mb-3">الهدف</label>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {[
+                                            {id: 'weightloss', icon: Flame, label: 'تنشيف'},
+                                            {id: 'maintenance', icon: Activity, label: 'لياقة'},
+                                            {id: 'muscle', icon: Dumbbell, label: 'تضخيم'},
+                                        ].map(opt => (
+                                            <button 
+                                                key={opt.id}
+                                                onClick={() => setGoal(opt.id)}
+                                                className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all
+                                                    ${goal === opt.id ? 'bg-neon/10 border-neon text-neon' : 'bg-black border-gray-800 text-gray-500 hover:border-gray-600'}
+                                                `}
+                                            >
+                                                <opt.icon className="w-5 h-5 mb-1" />
+                                                <span className="text-xs font-bold">{opt.label}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Place & Level */}
+                                <div className="grid grid-cols-2 gap-4 mb-8">
+                                    <div>
+                                        <label className="text-gray-400 text-sm font-bold block mb-2">المكان</label>
+                                        <select 
+                                            value={place} onChange={(e) => setPlace(e.target.value)}
+                                            className="w-full bg-black border border-gray-700 text-white p-3 rounded-lg outline-none focus:border-neon text-sm"
+                                        >
+                                            <option value="gym">الجيم (Gym)</option>
+                                            <option value="home">المنزل (Home)</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="text-gray-400 text-sm font-bold block mb-2">المستوى</label>
+                                        <select 
+                                            value={level} onChange={(e) => setLevel(e.target.value)}
+                                            className="w-full bg-black border border-gray-700 text-white p-3 rounded-lg outline-none focus:border-neon text-sm"
+                                        >
+                                            <option value="beginner">مبتدأ</option>
+                                            <option value="intermediate">متوسط</option>
+                                            <option value="advanced">محترف</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {/* Generate Button */}
+                                <button 
+                                    onClick={generatePlan}
+                                    disabled={loading}
+                                    className={`w-full py-4 rounded-xl font-black text-lg uppercase tracking-widest transition-all flex items-center justify-center gap-2
+                                        ${loading ? 'bg-gray-800 text-gray-500 cursor-not-allowed' : 'bg-neon text-black hover:shadow-neon hover:scale-[1.02]'}
+                                    `}
+                                >
+                                    {loading ? 'جاري التحليل...' : 'اصنع الخطة'} <Zap className={loading ? 'hidden' : 'w-5 h-5 fill-black'} />
+                                </button>
+                            </div>
+
+                            {/* Stats Card (Decoration) */}
+                            <div className="bg-dark-panel border border-dark-border p-4 rounded-2xl flex items-center justify-between opacity-70">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-neon">
+                                        <Scale className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <div className="text-xs text-gray-500">حالة الجسم</div>
+                                        <div className="text-sm font-bold text-white">تحليل مؤشر الكتلة...</div>
+                                    </div>
+                                </div>
+                                <div className="h-8 w-[1px] bg-gray-700"></div>
+                                <div className="text-right">
+                                    <div className="text-xs text-gray-500">النشاط</div>
+                                    <div className="text-neon text-sm font-mono">ACTIVE</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* RESULT PANEL */}
+                        <div className="lg:col-span-8">
+                            
+                            {loading && (
+                                <div className="h-full flex flex-col items-center justify-center space-y-6 bg-dark-panel/50 rounded-2xl border border-dashed border-gray-800 p-12">
+                                    <div className="w-full max-w-sm bg-gray-800 rounded-full h-2 overflow-hidden">
+                                        <div className="bg-neon h-full transition-all duration-300" style={{width: `${progress}%`}}></div>
+                                    </div>
+                                    <p className="text-neon font-mono animate-pulse">GENERATING PLAN_V1.0...</p>
+                                </div>
+                            )}
+
+                            {!plan && !loading && (
+                                <div className="h-full flex flex-col items-center justify-center text-center opacity-30 p-12 border-2 border-dashed border-gray-800 rounded-2xl">
+                                    <Dumbbell className="w-24 h-24 mb-4" />
+                                    <h2 className="text-2xl font-bold">بانتظار التعليمات</h2>
+                                    <p>املأ بياناتك واضغط على الزر لتبدأ رحلة التغيير</p>
+                                </div>
+                            )}
+
+                            {plan && !loading && (
+                                <div className="space-y-6 animate-slide-up">
+                                    
+                                    {/* Summary & Macros */}
+                                    <div className="grid md:grid-cols-3 gap-4">
+                                        <div className="md:col-span-3 bg-gradient-to-r from-neon/20 to-transparent border-r-4 border-neon p-4 rounded-lg">
+                                            <h3 className="text-neon font-bold text-sm uppercase tracking-wider mb-1">الخطة اليومية</h3>
+                                            <p className="text-xl font-bold text-white">{plan.summary}</p>
+                                        </div>
+                                        
+                                        <div className="bg-dark-panel p-4 rounded-xl border border-dark-border flex flex-col items-center justify-center">
+                                            <Flame className="text-orange-500 w-6 h-6 mb-2" />
+                                            <span className="text-2xl font-mono font-bold text-white">{plan.calories}</span>
+                                            <span className="text-xs text-gray-500 uppercase">سعرة حرارية</span>
+                                        </div>
+                                        
+                                        <div className="bg-dark-panel p-4 rounded-xl border border-dark-border flex flex-col items-center justify-center">
+                                            <Dumbbell className="text-blue-500 w-6 h-6 mb-2" />
+                                            <span className="text-2xl font-mono font-bold text-white">{plan.protein}</span>
+                                            <span className="text-xs text-gray-500 uppercase">بروتين</span>
+                                        </div>
+                                        
+                                        <div className="bg-dark-panel p-4 rounded-xl border border-dark-border flex flex-col items-center justify-center">
+                                            <TrendingUp className="text-neon w-6 h-6 mb-2" />
+                                            <span className="text-2xl font-mono font-bold text-white">100%</span>
+                                            <span className="text-xs text-gray-500 uppercase">قوة</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Workout Section */}
+                                    <div className="bg-dark-panel border border-dark-border rounded-2xl overflow-hidden">
+                                        <div className="bg-white/5 p-4 border-b border-white/5 flex justify-between items-center">
+                                            <h3 className="font-bold flex items-center gap-2"><Dumbbell className="text-neon w-5 h-5" /> جدول التمرين</h3>
+                                            <span className="text-xs bg-neon/20 text-neon px-2 py-1 rounded">اليوم الأول</span>
+                                        </div>
+                                        <div className="p-4 space-y-3">
+                                            {plan.workout.map((exercise, idx) => (
+                                                <div key={idx} className="flex items-center justify-between p-3 bg-black/40 rounded-lg hover:bg-white/5 transition-colors group">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded bg-gray-800 flex items-center justify-center text-gray-400 font-mono text-sm group-hover:text-neon group-hover:border group-hover:border-neon transition-all">
+                                                            {idx + 1}
+                                                        </div>
+                                                        <span className="font-bold text-sm md:text-base">{exercise.name}</span>
+                                                    </div>
+                                                    <span className="text-neon font-mono text-sm">{exercise.reps}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Diet Section */}
+                                    <div className="bg-dark-panel border border-dark-border rounded-2xl overflow-hidden">
+                                        <div className="bg-white/5 p-4 border-b border-white/5 flex justify-between items-center">
+                                            <h3 className="font-bold flex items-center gap-2"><Utensils className="text-orange-500 w-5 h-5" /> النظام الغذائي</h3>
+                                        </div>
+                                        <div className="p-4 grid md:grid-cols-2 gap-4">
+                                            <div className="p-3 bg-black/40 rounded-lg border-r-2 border-yellow-500">
+                                                <div className="text-xs text-gray-500 mb-1">الإفطار</div>
+                                                <div className="font-bold text-sm">{plan.diet.breakfast}</div>
+                                            </div>
+                                            <div className="p-3 bg-black/40 rounded-lg border-r-2 border-green-500">
+                                                <div className="text-xs text-gray-500 mb-1">الغداء</div>
+                                                <div className="font-bold text-sm">{plan.diet.lunch}</div>
+                                            </div>
+                                            <div className="p-3 bg-black/40 rounded-lg border-r-2 border-blue-500">
+                                                <div className="text-xs text-gray-500 mb-1">العشاء</div>
+                                                <div className="font-bold text-sm">{plan.diet.dinner}</div>
+                                            </div>
+                                            <div className="p-3 bg-black/40 rounded-lg border-r-2 border-purple-500">
+                                                <div className="text-xs text-gray-500 mb-1">سناك</div>
+                                                <div className="font-bold text-sm">{plan.diet.snack || "مكسرات أو فاكهة"}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            )}
+
+                        </div>
+                    </div>
+
+                </div>
+            );
+        }
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
